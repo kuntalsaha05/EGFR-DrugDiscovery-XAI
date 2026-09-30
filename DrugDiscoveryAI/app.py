@@ -86,6 +86,15 @@ st.markdown("""
         text-align: center;
         letter-spacing: 0.5px;
     }
+    /* Hide Streamlit top-right menu, deploy button, status, and footer */
+    #MainMenu {visibility: hidden; display: none !important;}
+    header {visibility: hidden; display: none !important;}
+    footer {visibility: hidden; display: none !important;}
+    .stDeployButton {display: none !important;}
+    div[data-testid="stToolbar"] {display: none !important;}
+    div[data-testid="stDecoration"] {display: none !important;}
+    div[data-testid="stStatusWidget"] {display: none !important;}
+    
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
     }
@@ -138,18 +147,15 @@ st.markdown("<div class='sub-title'>Early Molecular Screening & Interpretability
 # Sidebar
 st.sidebar.header("🔬 Screening Configuration")
 
-# Presentation Milestone Selector
-st.sidebar.markdown("### 🎯 Presentation Stage")
-demo_stage = st.sidebar.selectbox(
-    "Milestone to Display:",
-    [
-        "Part 1: Molecular Profiling & Chemoinformatics",
-        "Part 2: AI Virtual Screening & Benchmark",
-        "Part 3: Explainable AI & Full Platform"
-    ],
-    index=0,
-    help="Select which project milestone to present."
-)
+# Silent stage detection (default: Part 1).
+# Controlled via DEMO_PART environment variable or URL query param ?part=1/2/3
+raw_part = str(st.query_params.get("part", os.environ.get("DEMO_PART", "1"))).strip().lower()
+if raw_part in ["2", "part2"]:
+    demo_stage = "Part 2"
+elif raw_part in ["3", "part3", "all", "full"]:
+    demo_stage = "Part 3"
+else:
+    demo_stage = "Part 1"
 
 selected_preset_key = st.sidebar.selectbox(
     "Select Molecule Preset:",
@@ -171,20 +177,24 @@ else:
         height=90
     )
 
-model_type = st.sidebar.selectbox(
-    "Machine Learning Classifier:",
-    ["Random Forest", "Gradient Boosting"],
-    index=0
-)
-
-threshold = st.sidebar.slider(
-    "Classification Threshold [P(Active)]:",
-    min_value=0.10,
-    max_value=0.90,
-    value=0.50,
-    step=0.05,
-    help="Compounds with predicted probability >= threshold are classified as Active."
-)
+# Only show classifier controls in Part 2 and Part 3
+if demo_stage in ["Part 2", "Part 3"]:
+    model_type = st.sidebar.selectbox(
+        "Machine Learning Classifier:",
+        ["Random Forest", "Gradient Boosting"],
+        index=0
+    )
+    threshold = st.sidebar.slider(
+        "Classification Threshold [P(Active)]:",
+        min_value=0.10,
+        max_value=0.90,
+        value=0.50,
+        step=0.05,
+        help="Compounds with predicted probability >= threshold are classified as Active."
+    )
+else:
+    model_type = "Random Forest"
+    threshold = 0.50
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
@@ -194,14 +204,6 @@ st.sidebar.markdown("""
 - **Disease Focus:** NSCLC, Glioblastoma, Colorectal
 - **Benchmark Goal:** ROC-AUC > 0.80
 """)
-
-# Display Stage Banner
-if demo_stage.startswith("Part 1"):
-    st.markdown("<div class='milestone-banner'>📌 <b>MILESTONE 1:</b> Molecular Representation, 2D/3D Conformer Generation & Oral Drug-Likeness (RDKit Foundation)</div>", unsafe_allow_html=True)
-elif demo_stage.startswith("Part 2"):
-    st.markdown("<div class='milestone-banner'>📌 <b>MILESTONE 2:</b> Machine Learning Virtual Screening Pipeline (Random Forest vs Gradient Boosting, ROC-AUC > 0.90)</div>", unsafe_allow_html=True)
-else:
-    st.markdown("<div class='milestone-banner'>📌 <b>MILESTONE 3:</b> Explainable AI (SHAP Atom Highlights), Clinical Similarity Search & Automated PDF Dossier</div>", unsafe_allow_html=True)
 
 # Validate input
 if not input_smiles.strip():
