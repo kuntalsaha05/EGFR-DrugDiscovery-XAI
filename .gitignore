@@ -1,0 +1,22 @@
+# Python virtual environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pkl.tmp
+
+# Streamlit
+.streamlit/
+
+# Testing & temp outputs
+test_screening_report.pdf
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
