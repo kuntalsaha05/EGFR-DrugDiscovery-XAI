@@ -45,18 +45,28 @@ An end-to-end, interpretable AI system that predicts whether chemical compounds 
 7. **Automated PDF Screening Dossier**:
    - Publication-grade PDF report compiled with ReportLab containing structure diagrams, predictions, confidence meters, drug-likeness scorecards, SHAP feature rankings, and clinical similarity tables.
 
+8. **HERBARIUM ALPINUM Design System**:
+   - Adapted from the *Herbarium Alpinum — The Edelweiss Folio* design language (`https://ui.oiloil.org/works/herbarium/live/index.html`).
+   - Centralized semantic token architecture (`design_tokens.py`) with WCAG 2.2 AA contrast compliance.
+   - Near-black surfaces (`#000000`, `#080e0a`), botanical card panels (`#101811`), muted borders (`#35402f`), pale chalk typography (`#e6e9d9`), and fluorescent chartreuse (`#99ff00`) interactive actions.
+   - Persistent 8-section specimen cabinet navigation:
+     `01 / Overview` · `02 / Molecular Screening` · `03 / Explainable AI` · `04 / Drug-Likeness` · `05 / Similarity Search` · `06 / Model Performance` · `07 / Screening Reports` · `08 / Methodology`.
+
 ---
 
 ## 📁 Project Architecture
 
 ```
+.streamlit/
+└── config.toml             # Streamlit Theme Configuration (Herbarium Dark Palette)
 DrugDiscoveryAI/
-├── app.py                  # Streamlit Multi-Tab Web Application
-├── chem_engine.py          # RDKit Chemoinformatics Engine (2D/3D, Descriptors, ECFP4)
+├── app.py                  # Streamlit Web Application (8-Section Persistent Cabinet)
+├── design_tokens.py        # Centralized Semantic Tokens & Plotly Theme Builder
+├── chem_engine.py          # RDKit Chemoinformatics Engine (2D Dark SVG, 3D Conformer, Descriptors)
 ├── fetch_data.py           # ChEMBL REST API Data Harvester & Bioactivity Preprocessor
 ├── train_model.py          # ML Training Pipeline (RF & GBDT, Metrics, ROC-AUC > 0.80)
 ├── ai_model.py             # Inference Wrapper & Calibrated Probability Engine
-├── explainability.py       # SHAP TreeExplainer & Atom-Level Highlight Mapper
+├── explainability.py       # SHAP TreeExplainer & Atom-Level Highlight Mapper (Dark SVG)
 ├── similarity_engine.py    # Approved EGFR Drug Tanimoto Similarity Engine
 ├── chatbot.py              # Local Ollama AI Chemoinformatics Tutor & Explainer
 ├── report_generator.py     # Publication-Grade ReportLab PDF Generator

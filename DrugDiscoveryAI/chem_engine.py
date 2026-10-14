@@ -163,13 +163,14 @@ def draw_molecule_2d_svg(
     mol: Chem.Mol,
     highlight_atoms: Optional[List[int]] = None,
     highlight_atom_colors: Optional[Dict[int, Tuple[float, float, float]]] = None,
-    size: Tuple[int, int] = (450, 320)
+    size: Tuple[int, int] = (450, 320),
+    dark_mode: bool = True
 ) -> str:
     """
-    Renders 2D structure as SVG with optional atom highlights and color schemes.
+    Renders 2D structure as SVG with optional atom highlights and Herbarium Alpinum dark styling.
     """
     if mol is None:
-        return "<svg width='450' height='320'><text x='50' y='50'>Invalid Molecule</text></svg>"
+        return "<svg width='450' height='320'><text x='50' y='50' fill='#9ba793'>Invalid Molecule</text></svg>"
     
     # Generate clean 2D coordinates
     mol_copy = Chem.Mol(mol)
@@ -182,6 +183,20 @@ def draw_molecule_2d_svg(
     opts = drawer.drawOptions()
     opts.addStereoAnnotation = True
     opts.comicMode = False
+    
+    if dark_mode:
+        opts.clearBackground = False
+        opts.setSymbolColour((0.90, 0.91, 0.85, 1.0))
+        palette = {
+            0: (0.90, 0.91, 0.85),    # Default/C: chalk #e6e9d9
+            6: (0.90, 0.91, 0.85),    # Carbon: chalk #e6e9d9
+            7: (0.55, 0.75, 1.0),     # Nitrogen: soft blue
+            8: (1.0, 0.45, 0.45),     # Oxygen: soft coral
+            9: (0.6, 1.0, 0.6),       # Fluorine: soft green
+            17: (0.4, 0.95, 0.6),     # Chlorine: pale emerald
+            16: (0.95, 0.85, 0.3)     # Sulfur: warm amber
+        }
+        opts.updateAtomPalette(palette)
     
     if highlight_atoms:
         drawer.DrawMolecule(

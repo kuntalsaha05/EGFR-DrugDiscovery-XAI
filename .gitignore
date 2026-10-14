@@ -11,7 +11,8 @@ __pycache__/
 *.pkl.tmp
 
 # Streamlit
-.streamlit/
+.streamlit/*
+!.streamlit/config.toml
 
 # Testing & temp outputs
 test_screening_report.pdf
