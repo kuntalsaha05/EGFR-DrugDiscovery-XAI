@@ -34,6 +34,7 @@ from ai_model import get_predictor
 from explainability import SHAPExplainerEngine
 from similarity_engine import get_similarity_engine
 from report_generator import generate_screening_pdf
+from chatbot import check_ollama_status, build_system_context, stream_ollama_chat
 
 # Page configuration
 st.set_page_config(
@@ -558,12 +559,108 @@ def render_tab_report():
             mime="application/pdf"
         )
 
+def render_tab_chatbot():
+    st.subheader("💬 AI Chemoinformatics Tutor (Ollama)")
+    st.markdown("Ask questions in simple everyday language to understand this molecule, its descriptors, the AI prediction, or prepare talking points for your teacher!")
+
+    ollama_info = check_ollama_status()
+    c_status1, c_status2 = st.columns([2, 1])
+    with c_status1:
+        if ollama_info["available"]:
+            st.success(f"🟢 **Local Ollama LLM Online** — Model: `{ollama_info['selected_model']}` (Running locally on your device, private & offline)")
+        else:
+            st.info("💡 **Local Ollama Offline** — Active with built-in instant Chemoinformatics Explainer")
+    with c_status2:
+        if ollama_info["available"] and len(ollama_info["models"]) > 1:
+            active_model = st.selectbox("Ollama Model:", ollama_info["models"], index=0, key="ollama_model_select")
+        else:
+            active_model = ollama_info["selected_model"]
+
+    # Pre-computed SHAP for context if available
+    shap_data_for_chat = None
+    if predictor.is_loaded and pred_res.get("success"):
+        try:
+            sel_model = predictor.rf_model if model_type == "Random Forest" else predictor.gb_model
+            exp_engine = SHAPExplainerEngine(sel_model)
+            shap_data_for_chat = exp_engine.explain_instance(
+                pred_res["features"],
+                mol,
+                bit_info=pred_res["bit_info"],
+                top_k=5
+            )
+        except Exception:
+            pass
+
+    system_context = build_system_context(
+        can_smiles,
+        descriptors,
+        drug_likeness,
+        prediction_result=pred_res if predictor.is_loaded else None,
+        shap_result=shap_data_for_chat,
+        similarity_matches=sim_matches
+    )
+
+    # Quick Question Buttons
+    st.markdown("##### 💡 Quick Questions:")
+    q_col1, q_col2, q_col3 = st.columns(3)
+    quick_query = None
+    with q_col1:
+        if st.button("🎓 Explain this for my teacher", use_container_width=True, key="btn_teacher"):
+            quick_query = "How can I explain this molecule, its descriptors, and its prediction to my teacher in simple words?"
+        if st.button("❓ Why did the AI predict this?", use_container_width=True, key="btn_why_pred"):
+            quick_query = "Why did the machine learning model make this prediction for this molecule?"
+    with q_col2:
+        if st.button("💊 Explain Lipinski Rule of 5", use_container_width=True, key="btn_lipinski"):
+            quick_query = "What is Lipinski's Rule of 5 and what do the violations mean for this drug?"
+        if st.button("🟢 Explain Green vs Red SHAP", use_container_width=True, key="btn_shap"):
+            quick_query = "Explain what the green and red atom highlights mean in simple terms."
+    with q_col3:
+        if st.button("🔍 Compare with Approved Drugs", use_container_width=True, key="btn_sim"):
+            quick_query = "How does this compound compare to approved cancer drugs like Gefitinib?"
+        if st.button("🧹 Clear Chat History", use_container_width=True, key="btn_clear"):
+            st.session_state.chat_history = []
+            st.rerun()
+
+    # Session state for chat
+    if "chat_history" not in st.session_state or not st.session_state.chat_history:
+        st.session_state.chat_history = [
+            {
+                "role": "assistant",
+                "content": "👋 **Hello!** I am your local AI Chemoinformatics Tutor. I can explain this molecule, translate complex pharmacology into simple concepts, or help you practice answers for your teacher. Click any button above or type your question below!"
+            }
+        ]
+
+    # Render past chat messages
+    for msg in st.session_state.chat_history:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    # Chat input or button trigger
+    user_input = st.chat_input("Ask a question about this molecule or project in simple terms...")
+    prompt_to_send = quick_query or user_input
+
+    if prompt_to_send:
+        st.session_state.chat_history.append({"role": "user", "content": prompt_to_send})
+        with st.chat_message("user"):
+            st.markdown(prompt_to_send)
+
+        with st.chat_message("assistant"):
+            response_generator = stream_ollama_chat(
+                prompt=prompt_to_send,
+                system_context=system_context,
+                model_name=active_model,
+                conversation_history=st.session_state.chat_history[:-1]
+            )
+            full_response = st.write_stream(response_generator)
+            st.session_state.chat_history.append({"role": "assistant", "content": full_response})
+
 # Render Tabs dynamically based on demo_stage
 if demo_stage.startswith("Part 1"):
-    tab1, tab2, tab3 = st.tabs([
+    tab1, tab2, tab3, tab4 = st.tabs([
         "🧬 Molecular Overview & 3D",
         "💊 Drug-Likeness (Lipinski & Veber)",
-        "🎯 Target & Dataset (CHEMBL203)"
+        "🎯 Target & Dataset (CHEMBL203)",
+        "💬 AI Tutor (Ollama)"
     ])
     with tab1:
         render_tab_overview()
@@ -571,13 +668,16 @@ if demo_stage.startswith("Part 1"):
         render_tab_druglikeness()
     with tab3:
         render_tab_target_overview()
+    with tab4:
+        render_tab_chatbot()
 
 elif demo_stage.startswith("Part 2"):
-    tab1, tab2, tab3, tab4 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "🧬 Molecular Overview & 3D",
         "🎯 AI Virtual Screening",
         "💊 Drug-Likeness",
-        "📊 Model Benchmark & ROC Curves"
+        "📊 Model Benchmark & ROC Curves",
+        "💬 AI Tutor (Ollama)"
     ])
     with tab1:
         render_tab_overview()
@@ -587,16 +687,19 @@ elif demo_stage.startswith("Part 2"):
         render_tab_druglikeness()
     with tab4:
         render_tab_benchmark()
+    with tab5:
+        render_tab_chatbot()
 
 else:
     # Full Platform (Part 3)
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "🧬 Molecular Overview & 3D",
         "🎯 AI Prediction",
         "💡 Explainable AI (SHAP)",
         "💊 Drug-Likeness (Lipinski)",
         "🔍 Approved Drug Similarity",
         "📊 Model Benchmark",
+        "💬 AI Tutor (Ollama)",
         "📄 PDF Screening Report"
     ])
     with tab1:
@@ -612,4 +715,6 @@ else:
     with tab6:
         render_tab_benchmark()
     with tab7:
+        render_tab_chatbot()
+    with tab8:
         render_tab_report()
