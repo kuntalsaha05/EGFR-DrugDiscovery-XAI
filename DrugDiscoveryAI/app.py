@@ -148,15 +148,13 @@ st.markdown("<div class='sub-title'>Early Molecular Screening & Interpretability
 # Sidebar
 st.sidebar.header("🔬 Screening Configuration")
 
-# Silent stage detection (default: Part 1).
-# Controlled via DEMO_PART environment variable or URL query param ?part=1/2/3
-raw_part = str(st.query_params.get("part", os.environ.get("DEMO_PART", "1"))).strip().lower()
-if raw_part in ["2", "part2"]:
-    demo_stage = "Part 2"
-elif raw_part in ["3", "part3", "all", "full"]:
-    demo_stage = "Part 3"
-else:
+# Silent stage detection: Part 1 vs Final System.
+# Controlled via DEMO_PART environment variable or URL query param ?part=1 or ?part=final
+raw_part = str(st.query_params.get("part", os.environ.get("DEMO_PART", "final"))).strip().lower()
+if raw_part in ["1", "part1"]:
     demo_stage = "Part 1"
+else:
+    demo_stage = "Final"
 
 selected_preset_key = st.sidebar.selectbox(
     "Select Molecule Preset:",
@@ -178,8 +176,8 @@ else:
         height=90
     )
 
-# Only show classifier controls in Part 2 and Part 3
-if demo_stage in ["Part 2", "Part 3"]:
+# Only show classifier controls in Final Platform
+if demo_stage == "Final":
     model_type = st.sidebar.selectbox(
         "Machine Learning Classifier:",
         ["Random Forest", "Gradient Boosting"],
@@ -428,6 +426,18 @@ def render_tab_target_overview():
     3. Classified into standard binary screening labels:
        - **Active (1):** $IC_{50} \\le 1,000\\text{ nM}$ ($pIC_{50} \\ge 6.0$)
        - **Inactive (0):** $IC_{50} \\ge 10,000\\text{ nM}$ ($pIC_{50} \\le 5.0$)
+
+    ---
+    ### 🎓 Academic AI Curriculum Alignment (Units I - V)
+    This project applies key concepts across the Artificial Intelligence syllabus:
+    - **UNIT-I (Key Components of AI Systems):** Implementation of a domain-specific **Narrow AI** for automated problem solving in oncology. Evaluates the perception $\\to$ representation $\\to$ prediction loop and addresses ethical considerations in medical AI.
+    - **UNIT-II (ML Applications, Tools & Frameworks):** Data wrangling via **Pandas** and **NumPy**; supervised ensemble learning using **Random Forest** and **Gradient Boosting** with rigorous train/test stratification.
+    - **UNIT-III (Graph Theory, LLMs & Explainable AI - XAI):**
+      - **Graph Theory:** Molecules represented as mathematical graphs $G=(V,E)$ where vertices are atoms and edges are covalent bonds, mapped via 2048-bit Morgan circular graph traversal (ECFP4).
+      - **Large Language Models (LLMs):** Local **Ollama** chatbot providing conversational explanations for students and evaluators.
+      - **Explainable AI (XAI):** Game-theoretic **SHAP (SHapley Additive exPlanations)** decomposing predictions down to individual functional groups and atoms.
+    - **UNIT-IV (AI Applications in Healthcare):** Direct application in targeted lung cancer therapeutics (EGFR virtual screening), drastically cutting down wet-lab testing cycles and laboratory costs.
+    - **UNIT-V (Real-World AI Case Studies):** Parallels milestone AI applications like **IBM Watson Health**, **DeepMind's AlphaFold**, and predictive disease biomarker systems.
     """)
 
 def render_tab_shap():
@@ -654,12 +664,12 @@ def render_tab_chatbot():
             full_response = st.write_stream(response_generator)
             st.session_state.chat_history.append({"role": "assistant", "content": full_response})
 
-# Render Tabs dynamically based on demo_stage
-if demo_stage.startswith("Part 1"):
+# Render Tabs dynamically based on demo_stage (Part 1 vs Final System)
+if demo_stage == "Part 1":
     tab1, tab2, tab3, tab4 = st.tabs([
         "🧬 Molecular Overview & 3D",
         "💊 Drug-Likeness (Lipinski & Veber)",
-        "🎯 Target & Dataset (CHEMBL203)",
+        "🎯 Target & Syllabus (CHEMBL203)",
         "💬 AI Tutor (Ollama)"
     ])
     with tab1:
@@ -671,30 +681,11 @@ if demo_stage.startswith("Part 1"):
     with tab4:
         render_tab_chatbot()
 
-elif demo_stage.startswith("Part 2"):
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "🧬 Molecular Overview & 3D",
-        "🎯 AI Virtual Screening",
-        "💊 Drug-Likeness",
-        "📊 Model Benchmark & ROC Curves",
-        "💬 AI Tutor (Ollama)"
-    ])
-    with tab1:
-        render_tab_overview()
-    with tab2:
-        render_tab_prediction()
-    with tab3:
-        render_tab_druglikeness()
-    with tab4:
-        render_tab_benchmark()
-    with tab5:
-        render_tab_chatbot()
-
 else:
-    # Full Platform (Part 3)
+    # Final Full Platform
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "🧬 Molecular Overview & 3D",
-        "🎯 AI Prediction",
+        "🎯 AI Virtual Screening",
         "💡 Explainable AI (SHAP)",
         "💊 Drug-Likeness (Lipinski)",
         "🔍 Approved Drug Similarity",

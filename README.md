@@ -1,7 +1,7 @@
 # 🧬 Explainable AI-Based Drug Discovery Assistant for Early Molecular Screening
 ### Target: Human EGFR (*Epidermal Growth Factor Receptor* / ChEMBL ID: CHEMBL203) Virtual Screening
 
-An end-to-end, interpretable AI system that predicts whether chemical compounds bind to and inhibit the **Human EGFR** kinase domain, explains predictions using **SHAP** with atom-level structural attribution, calculates **Lipinski & Veber drug-likeness**, benchmarks **Tanimoto similarity** against FDA-approved cancer therapeutics, and generates publication-grade **PDF screening dossiers**.
+An end-to-end, interpretable AI system that predicts whether chemical compounds bind to and inhibit the **Human EGFR** kinase domain, explains predictions using **SHAP** with atom-level structural attribution, calculates **Lipinski & Veber drug-likeness**, benchmarks **Tanimoto similarity** against FDA-approved cancer therapeutics, provides a local **Ollama AI Chemoinformatics Tutor**, and generates publication-grade **PDF screening dossiers**.
 
 ---
 
@@ -38,7 +38,11 @@ An end-to-end, interpretable AI system that predicts whether chemical compounds 
      - **Lapatinib (Tykerb)** (Dual EGFR/HER2)
      - **Dacomitinib (Vizimpro)** (2nd Gen Pan-HER)
 
-6. **Automated PDF Screening Dossier**:
+6. **Local Ollama AI Chemoinformatics Tutor**:
+   - Powered by local models (`gemma3:1b`, `phi4-mini`) for conversational explanations.
+   - Translates complex pharmacology into simple analogies (locks and keys, coffee filters, oral pill absorption) for student and evaluator questions.
+
+7. **Automated PDF Screening Dossier**:
    - Publication-grade PDF report compiled with ReportLab containing structure diagrams, predictions, confidence meters, drug-likeness scorecards, SHAP feature rankings, and clinical similarity tables.
 
 ---
@@ -54,6 +58,7 @@ DrugDiscoveryAI/
 ├── ai_model.py             # Inference Wrapper & Calibrated Probability Engine
 ├── explainability.py       # SHAP TreeExplainer & Atom-Level Highlight Mapper
 ├── similarity_engine.py    # Approved EGFR Drug Tanimoto Similarity Engine
+├── chatbot.py              # Local Ollama AI Chemoinformatics Tutor & Explainer
 ├── report_generator.py     # Publication-Grade ReportLab PDF Generator
 ├── data/
 │   └── egfr_chembl203_bioactivity.csv   # Curated & Processed EGFR ChEMBL Dataset
@@ -70,32 +75,22 @@ DrugDiscoveryAI/
 
 ## 🚀 How to Run the Application
 
-### Option A: Double-Click Launcher (Windows)
-Double-click [`run_app.bat`](file:///c:/Users/sahak/Documents/AIDS/DVP/Project/run_app.bat) to activate the virtual environment and start the Streamlit server automatically.
-
-### Option B: Terminal Command
-```powershell
-# 1. Activate virtual environment
-.\.venv\Scripts\activate
-
-# 2. Run Streamlit web app
-streamlit run DrugDiscoveryAI\app.py
-```
-
-The web application will open in your browser at `http://localhost:8501`.
+| Launcher | Description |
+| :--- | :--- |
+| **[`run_part1.bat`](run_part1.bat)** | **Part 1 (Milestone 1):** Molecular profiling, 3D conformers, Lipinski/Veber rules, EGFR target overview, and the Ollama AI tutor. |
+| **[`run_final_app.bat`](run_final_app.bat)** *(or `run_app.bat`)* | **Final Complete Platform:** All features unlocked including ML virtual screening, SHAP explainability, drug similarity search, Ollama chatbot, and PDF dossier generation. |
 
 ---
 
-## 🧪 Dataset Information
+## 🎓 Academic AI Syllabus Alignment (Units I - V)
 
-- **Target:** Human Epidermal Growth Factor Receptor (**CHEMBL203**).
-- **Assay Type:** Biochemical $IC_{50}$ binding assays measured in nanomolar ($\text{nM}$).
-- **Transformation:**
-  $$pIC_{50} = -\log_{10}(IC_{50} \times 10^{-9}) = 9 - \log_{10}(IC_{50})$$
-- **Classification Thresholds:**
-  - **Active ($1$):** $IC_{50} \le 1,000\text{ nM}$ ($pIC_{50} \ge 6.0$)
-  - **Inactive ($0$):** $IC_{50} \ge 10,000\text{ nM}$ ($pIC_{50} \le 5.0$)
-- **Data Size:** 881 curated compounds (480 Actives, 401 Inactives).
+This project directly aligns with college Artificial Intelligence and Applications curricula. See the complete viva guide in **[`SYLLABUS_ALIGNMENT.md`](SYLLABUS_ALIGNMENT.md)**.
+
+- **UNIT-I (Key Components of AI Systems):** Domain-specific **Narrow AI** for automated problem solving in oncology; heuristic search spaces; algorithmic ethics.
+- **UNIT-II (ML Applications, Tools & Frameworks):** Data wrangling via **Pandas** and **NumPy**; supervised ensemble learning using **Random Forest** and **Gradient Boosting**.
+- **UNIT-III (Graph Theory, LLMs & Explainable AI):** Chemical compounds represented as **molecular graphs** $G=(V, E)$; local **Ollama** LLMs for conversational tutoring; game-theoretic **SHAP (XAI)** for atom attribution.
+- **UNIT-IV (AI Applications in Healthcare):** Direct application in computational oncology and early virtual high-throughput screening for lung cancer therapeutics.
+- **UNIT-V (Real-World AI Case Studies):** Parallels industry milestones like **IBM Watson Health**, **DeepMind's AlphaFold**, and predictive disease biomarker systems.
 
 ---
 

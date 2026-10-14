@@ -1,8 +1,8 @@
 @echo off
 echo ======================================================================
-echo Launching EGFR Drug Discovery Assistant [PART 3: Full Explainable AI Platform]
+echo Launching Explainable AI Drug Discovery Assistant [FINAL FULL SYSTEM]
 echo ======================================================================
-set DEMO_PART=3
+set DEMO_PART=final
 cd /d "%~dp0"
 call .venv\Scripts\activate.bat
 streamlit run DrugDiscoveryAI\app.py
