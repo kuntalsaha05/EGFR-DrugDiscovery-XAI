@@ -186,13 +186,13 @@ class SHAPExplainerEngine:
                 if abs(f_score) >= 0.15:
                     highlight_atoms.append(i_idx)
                     if f_score > 0:
-                        # Emerald Green gradient (favorable for EGFR inhibition)
-                        intensity = float(min(1.0, 0.4 + 0.6 * f_score))
-                        highlight_colors[i_idx] = (0.1, intensity, 0.3)
+                        # Fluorescent Chartreuse gradient (#99ff00 favorable binding anchor)
+                        intensity = float(min(1.0, 0.5 + 0.5 * f_score))
+                        highlight_colors[i_idx] = (0.6 * intensity, 1.0 * intensity, 0.0)
                     else:
-                        # Crimson Red gradient (unfavorable for EGFR inhibition)
-                        intensity = float(min(1.0, 0.4 + 0.6 * abs(f_score)))
-                        highlight_colors[i_idx] = (intensity, 0.15, 0.15)
+                        # Crimson gradient (#ff5555 unfavorable steric/electronic penalty)
+                        intensity = float(min(1.0, 0.5 + 0.5 * abs(f_score)))
+                        highlight_colors[i_idx] = (1.0 * intensity, 0.33 * intensity, 0.33 * intensity)
 
         # Render 2D SVG with highlights
         try:
@@ -203,6 +203,17 @@ class SHAPExplainerEngine:
             opts = drawer.drawOptions()
             opts.addStereoAnnotation = True
             opts.highlightRadius = 0.35
+            opts.clearBackground = False
+            opts.setSymbolColour((0.90, 0.91, 0.85, 1.0))
+            opts.updateAtomPalette({
+                0: (0.90, 0.91, 0.85),
+                6: (0.90, 0.91, 0.85),
+                7: (0.55, 0.75, 1.0),
+                8: (1.0, 0.45, 0.45),
+                9: (0.6, 1.0, 0.6),
+                17: (0.4, 0.95, 0.6),
+                16: (0.95, 0.85, 0.3)
+            })
             
             if highlight_atoms:
                 drawer.DrawMolecule(
