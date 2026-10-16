@@ -156,13 +156,13 @@ def generate_all_figures():
     ensure_rgb_white_bg(fig5_path)
     print("Saved fig5_radar_druglikeness.png")
 
-    # 6. FIG 6: Tanimoto Similarity Bar Chart
-    drugs = ['Gefitinib', 'Erlotinib', 'Afatinib', 'Osimertinib', 'Lapatinib', 'Aspirin (Ctrl)']
-    sims = [100.0, 52.4, 48.9, 39.2, 38.6, 13.3]
-    fig = plt.figure(figsize=(6.5, 3.8), dpi=200, facecolor='white')
+    # 6. FIG 6: Tanimoto Similarity Bar Chart (Matched with approved poster)
+    drugs = ['Gefitinib (Iressa)', 'Dacomitinib (Vizimpro)', 'Erlotinib (Tarceva)', 'Afatinib (Gilotrif)', 'Lapatinib (Tykerb)', 'Osimertinib (Tagrisso)']
+    sims = [100.0, 44.1, 40.8, 38.1, 31.7, 15.0]
+    fig = plt.figure(figsize=(6.8, 3.8), dpi=200, facecolor='white')
     ax = fig.add_subplot(111)
     ax.set_facecolor('white')
-    colors_bar = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#f87171']
+    colors_bar = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#93c5fd', '#60a5fa']
     bars = ax.barh(drugs[::-1], sims[::-1], color=colors_bar[::-1], edgecolor='#1e293b', lw=1)
     for bar in bars:
         w = bar.get_width()
