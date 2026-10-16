@@ -10,3 +10,4 @@ py3Dmol>=2.0.0
 st-py3dmol>=0.0.5
 requests>=2.31.0
 reportlab>=4.0.0
+python-docx>=1.2.0
