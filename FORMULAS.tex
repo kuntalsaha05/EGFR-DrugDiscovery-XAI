@@ -1,0 +1,263 @@
+% =========================================================================
+% MATHEMATICAL FORMULATIONS IN LATEX
+% Project: AI-Powered Drug Discovery for EGFR Inhibitors in Lung Cancer
+% Authors: Kalpana Bishnoi, Kuntal Saha, Saloni Bhongle
+% Mentor:  Dr. Devendra Joshi
+% Department of Computer Science & Engineering | Department of AI & DS
+% Dr. Vishwanath Karad MIT World Peace University (MIT-WPU), Pune
+% =========================================================================
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{hyperref}
+\usepackage{booktabs}
+
+\title{\textbf{Mathematical Formulations and Theoretical Foundations}\\
+\large AI-Powered Drug Discovery for EGFR Inhibitors in Lung Cancer}
+\author{Kalpana Bishnoi \and Kuntal Saha \and Saloni Bhongle\\
+\small Guided by: Dr. Devendra Joshi\\
+\small Dr. Vishwanath Karad MIT World Peace University, Pune}
+\date{Academic Year: 2026--2027}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document provides the complete, mathematically rigorous formulation of all quantitative models, graph featurization algorithms, ensemble machine learning loss functions, cooperative game-theoretic explainability (TreeSHAP), and chemoinformatics similarity metrics utilized in the EGFR Molecular Intelligence virtual screening platform.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% -------------------------------------------------------------------------
+\section{Bioactivity Curation and Potency Transformation}
+% -------------------------------------------------------------------------
+
+\subsection{Half-Maximal Inhibitory Concentration Logarithmic Normalization}
+Biochemical assays report binding potency as half-maximal inhibitory concentration ($IC_{50}$) in nanomolar ($\text{nM}$). Because binding affinities span several orders of magnitude, absolute concentrations are mapped to standard negative logarithmic molar potency ($pIC_{50}$):
+
+\begin{equation}
+\label{eq:pic50}
+pIC_{50} = -\log_{10}\left( IC_{50} \times 10^{-9} \right) = 9 - \log_{10}\left( IC_{50}\text{ [nM]} \right)
+\end{equation}
+
+\noindent Where:
+\begin{itemize}
+    \item $IC_{50}$ represents the molar concentration of compound required for $50\%$ in-vitro inhibition of Human EGFR kinase domain (CHEMBL203).
+    \item $pIC_{50} \ge 6.0$ denotes micromolar potency ($IC_{50} \le 1{,}000\text{ nM}$).
+\end{itemize}
+
+\subsection{Binary Bioactivity Discretization Function}
+To eliminate label noise at the biological decision boundary, continuous bioactivity is partitioned into binary target labels $y \in \{0, 1\}$ using a dual-threshold filter with an intermediate buffer exclusion:
+
+\begin{equation}
+\label{eq:discretization}
+y = 
+\begin{cases}
+1 \quad (\text{Active}), & \text{if } IC_{50} \le 1{,}000\text{ nM} \iff pIC_{50} \ge 6.0 \\
+0 \quad (\text{Inactive}), & \text{if } IC_{50} \ge 10{,}000\text{ nM} \iff pIC_{50} \le 5.0 \\
+\text{Excluded}, & \text{if } 1{,}000\text{ nM} < IC_{50} < 10{,}000\text{ nM}
+\end{cases}
+\end{equation}
+
+% -------------------------------------------------------------------------
+\section{Multi-Scale Chemoinformatics Molecular Featurization}
+% -------------------------------------------------------------------------
+
+\subsection{Extended Connectivity Circular Fingerprints (ECFP4)}
+Small molecules are modeled as undirected topological graphs $G = (V, E)$, where $V = \{v_1, \dots, v_n\}$ denotes the set of heavy atoms and $E = \{e_{uv}\}$ denotes covalent bonds. The Morgan circular algorithm computes topological invariant hashes iteratively up to radius $r = 2$ (representing path lengths up to 4 bonds):
+
+\begin{equation}
+\label{eq:morgan_hash}
+\text{ID}_v^{(r)} = \mathcal{H}\left( \text{ID}_v^{(r-1)}, \sum_{u \in \mathcal{N}(v)} \Big[ \text{BondOrder}(v, u), \, \text{ID}_u^{(r-1)} \Big] \right)
+\end{equation}
+
+\noindent Where:
+\begin{itemize}
+    \item $\mathcal{H}$ is an integer hashing function with uniform pseudo-random dispersion.
+    \item $\mathcal{N}(v)$ represents the first-order topological neighborhood of vertex $v$.
+    \item $\text{ID}_v^{(0)}$ is initialized with Daylight invariant properties (atomic number, heavy valence, formal charge, hydrogen count, aromaticity).
+\end{itemize}
+
+\subsection{Modulo Bit-Vector Folding}
+The resulting integer identifiers across all atoms $v \in V$ and radii $r \in \{0, 1, 2\}$ are folded into a dense binary bit vector $\mathbf{b} \in \{0, 1\}^M$ of length $M = 2{,}048$ bits using modulo hashing:
+
+\begin{equation}
+\label{eq:bit_folding}
+b_k = 
+\begin{cases}
+1, & \text{if } \exists v, r \text{ such that } \left( \text{ID}_v^{(r)} \pmod M \right) = k \\
+0, & \text{otherwise}
+\end{cases}
+\end{equation}
+
+\subsection{Composite Feature Vector Concatenation}
+To integrate topological substructure presence with whole-molecule physicochemical descriptors, the feature representation is formulated as:
+
+\begin{equation}
+\label{eq:composite_feature}
+\mathbf{x} = \Big[ b_1, b_2, \dots, b_{2048}, \, \tilde{d}_1, \tilde{d}_2, \dots, \tilde{d}_8 \Big]^T \in \mathbb{R}^{2056}
+\end{equation}
+
+\noindent where continuous descriptors $\tilde{d}_k$ undergo Z-score standardization:
+\begin{equation}
+\tilde{d}_k = \frac{d_k - \mu_k}{\sigma_k}, \quad \mu_k = \frac{1}{N_{\text{train}}}\sum_{i=1}^{N_{\text{train}}} d_{ik}, \quad \sigma_k = \sqrt{\frac{1}{N_{\text{train}}}\sum_{i=1}^{N_{\text{train}}} (d_{ik} - \mu_k)^2}
+\end{equation}
+
+% -------------------------------------------------------------------------
+\section{3D Conformation and Molecular Mechanics Energy}
+% -------------------------------------------------------------------------
+
+\subsection{MMFF94 Molecular Mechanics Potential Energy Function}
+3D conformations generated via ETKDG distance geometry are energy-minimized using the Merck Molecular Force Field (MMFF94) Hamiltonian:
+
+\begin{equation}
+\label{eq:mmff94}
+E_{\text{MMFF94}} = \sum E_{\text{stretch}} + \sum E_{\text{angle}} + \sum E_{\text{torsion}} + \sum E_{\text{oop}} + \sum E_{\text{vdW}} + \sum E_{\text{electrostatic}}
+\end{equation}
+
+\noindent Detailed potential energy terms:
+\begin{align}
+E_{\text{stretch}} &= \frac{1}{2} k_b (r - r_0)^2 \left[ 1 + c_s (r - r_0) + \frac{7}{12} c_s^2 (r - r_0)^2 \right] \\
+E_{\text{angle}} &= \frac{1}{2} k_\theta (\theta - \theta_0)^2 \left[ 1 + c_b (\theta - \theta_0) \right] \\
+E_{\text{torsion}} &= \frac{1}{2} \left[ V_1 (1 + \cos\phi) + V_2 (1 - \cos 2\phi) + V_3 (1 + \cos 3\phi) \right] \\
+E_{\text{vdW}} &= \epsilon_{ij} \left( \frac{1.07 R_{ij}^*}{r_{ij} + 0.07 R_{ij}^*} \right)^7 \left( \frac{1.12 R_{ij}^{*7}}{r_{ij}^7 + 0.12 R_{ij}^{*7}} - 2 \right) \\
+E_{\text{electrostatic}} &= \frac{q_i q_j}{\epsilon (r_{ij} + \delta)}
+\end{align}
+
+% -------------------------------------------------------------------------
+\section{Supervised Machine Learning Ensembles}
+% -------------------------------------------------------------------------
+
+\subsection{Random Forest Consensus Classification}
+Random Forest builds an ensemble of $B = 100$ decorrelated decision trees $\{T_b\}_{b=1}^B$ using bootstrap aggregating with feature sub-sampling $m = \sqrt{M}$. The consensus probability expectation for active EGFR binding is:
+
+\begin{equation}
+\label{eq:rf_prob}
+\hat{P}_{\text{RF}}(y = 1 \mid \mathbf{x}) = \frac{1}{B} \sum_{b=1}^{B} T_b(\mathbf{x})
+\end{equation}
+
+\subsection{Gradient Boosted Decision Trees (GBDT)}
+Gradient Boosting minimizes binary cross-entropy loss $\mathcal{L}(y, p)$ over $M$ boosting iterations:
+
+\begin{equation}
+\label{eq:cross_entropy}
+\mathcal{L}(y, p) = - \Big[ y \ln(p) + (1 - y) \ln(1 - p) \Big]
+\end{equation}
+
+\noindent At stage $m$, pseudo-residuals $r_{im}$ are evaluated with respect to current model predictions $F_{m-1}(x_i)$:
+\begin{equation}
+\label{eq:residuals}
+r_{im} = -\left[ \frac{\partial \mathcal{L}(y_i, F(x_i))}{\partial F(x_i)} \right]_{F=F_{m-1}} = y_i - \frac{1}{1 + e^{-F_{m-1}(x_i)}} = y_i - p_{m-1}(x_i)
+\end{equation}
+
+\noindent The stage-wise additive ensemble update with shrinkage rate $\eta = 0.1$ is formulated as:
+\begin{equation}
+\label{eq:gbdt_update}
+F_m(\mathbf{x}) = F_{m-1}(\mathbf{x}) + \eta \sum_{j=1}^{J_m} \gamma_{jm} \mathbb{I}(\mathbf{x} \in R_{jm})
+\end{equation}
+
+\noindent where terminal node step sizes $\gamma_{jm}$ satisfy:
+\begin{equation}
+\gamma_{jm} = \frac{\sum_{x_i \in R_{jm}} r_{im}}{\sum_{x_i \in R_{jm}} p_{m-1}(x_i)(1 - p_{m-1}(x_i))}
+\end{equation}
+
+% -------------------------------------------------------------------------
+\section{Cooperative Game-Theoretic Explainability (TreeSHAP)}
+% -------------------------------------------------------------------------
+
+\subsection{Classical Shapley Value Axiomatic Formulation}
+Originating from cooperative game theory, the Shapley value $\phi_i$ represents the unique payout allocation across $N$ feature variables satisfying Efficiency, Symmetry, Null Player, and Additivity axioms:
+
+\begin{equation}
+\label{eq:shapley}
+\phi_i(v) = \sum_{S \subseteq N \setminus \{i\}} \frac{|S|! \, (|N| - |S| - 1)!}{|N|!} \left[ v(S \cup \{i\}) - v(S) \right]
+\end{equation}
+
+\noindent Where:
+\begin{itemize}
+    \item $N$ is the set of all $2{,}056$ featurized inputs.
+    \item $S$ represents a coalition of features.
+    \item $v(S) = \mathbb{E}[f(\mathbf{x}) \mid \mathbf{x}_S]$ denotes the conditional expectation of the model given coalition $S$.
+\end{itemize}
+
+\subsection{TreeSHAP Additive Efficiency Property}
+The sum of feature attributions equals the difference between the sample prediction $f(\mathbf{x})$ and the base expected value $\mathbb{E}[f(X)]$:
+
+\begin{equation}
+\label{eq:efficiency}
+f(\mathbf{x}) = \phi_0 + \sum_{i=1}^{M} \phi_i(\mathbf{x}), \quad \text{where } \phi_0 = \mathbb{E}[f(X)]
+\end{equation}
+
+\subsection{Topological Atom-Level Spatial Deconvolution}
+To project abstract 2,048-bit Morgan fingerprint attributions $\phi_j$ back to atomic coordinates $v \in V$, attributions are allocated via circular radius weighting:
+
+\begin{equation}
+\label{eq:atom_score}
+\text{AtomScore}(v) = \sum_{j \in \mathcal{B}(v)} \phi_j \cdot w(r_j), \quad \text{where } w(r) = \frac{1}{1 + r}
+\end{equation}
+
+\noindent where $\mathcal{B}(v)$ denotes the set of active fingerprint bits whose circular neighborhood contains atom $v$ at radius $r_j$.
+
+% -------------------------------------------------------------------------
+\section{Chemoinformatics Similarity and Bioavailability Metrics}
+% -------------------------------------------------------------------------
+
+\subsection{Tanimoto (Jaccard) Similarity Metric}
+The structural similarity between query fingerprint vector $\mathbf{A} \in \{0, 1\}^M$ and clinical reference drug vector $\mathbf{B} \in \{0, 1\}^M$ is:
+
+\begin{equation}
+\label{eq:tanimoto}
+T_c(\mathbf{A}, \mathbf{B}) = \frac{|\mathbf{A} \cap \mathbf{B}|}{|\mathbf{A} \cup \mathbf{B}|} = \frac{\sum_{k=1}^{M} (A_k \land B_k)}{\sum_{k=1}^{M} (A_k \lor B_k)} = \frac{c}{a + b - c}
+\end{equation}
+
+\noindent Where:
+\begin{itemize}
+    \item $c = \sum (A_k \land B_k)$ is the count of coincident active bits.
+    \item $a = \sum A_k$ and $b = \sum B_k$ are the total active bits in molecules $\mathbf{A}$ and $\mathbf{B}$.
+\end{itemize}
+
+\subsection{Wildman-Crippen Lipophilicity Estimation (MolLogP)}
+LogP is approximated by summing parameterized atomic contributions $a_i$ across all heavy atoms:
+
+\begin{equation}
+\label{eq:logp}
+\text{MolLogP} = \sum_{i=1}^{N_{\text{atoms}}} n_i a_i
+\end{equation}
+
+\subsection{Topological Polar Surface Area (TPSA)}
+TPSA is calculated as the sum of invariant polar fragment surface contributions:
+
+\begin{equation}
+\label{eq:tpsa}
+\text{TPSA} = \sum_{i=1}^{N_{\text{polar}}} n_i \cdot \Delta \text{PSA}_i
+\end{equation}
+
+\subsection{Quantitative Estimate of Drug-Likeness (QED)}
+QED evaluates the geometric mean of individual desirability functions $d_i(x_i) \in [0, 1]$ over $k = 8$ physicochemical properties:
+
+\begin{equation}
+\label{eq:qed}
+\text{QED} = \exp\left( \frac{1}{k} \sum_{i=1}^{k} \ln d_i(x_i) \right)
+\end{equation}
+
+\subsection{Lipinski and Veber Oral Bioavailability Criteria}
+A chemical compound is orally bioavailable if it satisfies the following inequalities:
+
+\begin{equation}
+\label{eq:lipinski_veber}
+\begin{cases}
+\text{Molecular Weight (MolWt)} \le 500\text{ Da} & \text{(Lipinski Rule 1)} \\
+\text{Lipophilicity (MolLogP)} \le 5.0 & \text{(Lipinski Rule 2)} \\
+\text{Hydrogen Bond Donors (HBD)} \le 5 & \text{(Lipinski Rule 3)} \\
+\text{Hydrogen Bond Acceptors (HBA)} \le 10 & \text{(Lipinski Rule 4)} \\
+\text{Rotatable Single Bonds (RotB)} \le 10 & \text{(Veber Rule 1)} \\
+\text{Topological Polar Surface Area (TPSA)} \le 140\text{ \AA}^2 & \text{(Veber Rule 2)}
+\end{cases}
+\end{equation}
+
+\end{document}
