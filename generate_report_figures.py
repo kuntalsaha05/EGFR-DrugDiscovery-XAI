@@ -1,9 +1,11 @@
 """
 Generates publication-grade scientific figures for the academic project report.
+Ensures pure white backgrounds (RGB mode, 0 alpha) to prevent PDF rendering black boxes.
 """
 import os
 import json
 import numpy as np
+from PIL import Image
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -13,11 +15,24 @@ from rdkit.Chem.Draw import rdMolDraw2D
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+def ensure_rgb_white_bg(filepath):
+    im = Image.open(filepath)
+    if im.mode in ('RGBA', 'LA') or (im.mode == 'P' and 'transparency' in im.info):
+        bg = Image.new('RGB', im.size, (255, 255, 255))
+        if im.mode != 'RGBA':
+            im = im.convert('RGBA')
+        bg.paste(im, mask=im.split()[3])
+        bg.save(filepath, 'PNG')
+    elif im.mode != 'RGB':
+        im.convert('RGB').save(filepath, 'PNG')
+
+
 def generate_all_figures():
-    print("Generating publication figures...")
+    print("Generating publication figures with pure white backgrounds...")
 
     # 1. FIG 1: Pipeline Architecture
-    fig, ax = plt.subplots(figsize=(10, 4.0), dpi=200)
+    fig, ax = plt.subplots(figsize=(10, 4.0), dpi=200, facecolor='white')
+    ax.set_facecolor('white')
     ax.axis('off')
     boxes = [
         ("1. Chemical Input\nSMILES String", 0.08, "#f8fafc", "#0f172a"),
@@ -37,8 +52,10 @@ def generate_all_figures():
     plt.title("Fig 1: End-to-End Explainable Virtual Screening Architecture for Human EGFR (CHEMBL203)",
               fontsize=10.5, fontweight='bold', pad=12)
     plt.tight_layout()
-    plt.savefig(os.path.join(CURRENT_DIR, "fig1_pipeline_architecture.png"), bbox_inches='tight')
+    fig1_path = os.path.join(CURRENT_DIR, "fig1_pipeline_architecture.png")
+    plt.savefig(fig1_path, bbox_inches='tight', facecolor='white', edgecolor='none', transparent=False)
     plt.close()
+    ensure_rgb_white_bg(fig1_path)
     print("Saved fig1_pipeline_architecture.png")
 
     # 2. FIG 2: 2D Chemical Structure of Gefitinib
@@ -46,10 +63,13 @@ def generate_all_figures():
     drawer = rdMolDraw2D.MolDraw2DCairo(600, 400)
     opts = drawer.drawOptions()
     opts.addStereoAnnotation = True
+    opts.clearBackground = True
     drawer.DrawMolecule(mol)
     drawer.FinishDrawing()
-    with open(os.path.join(CURRENT_DIR, "fig2_gefitinib_structure.png"), "wb") as f:
+    fig2_path = os.path.join(CURRENT_DIR, "fig2_gefitinib_structure.png")
+    with open(fig2_path, "wb") as f:
         f.write(drawer.GetDrawingText())
+    ensure_rgb_white_bg(fig2_path)
     print("Saved fig2_gefitinib_structure.png")
 
     # 3. FIG 3: Atom-Level SHAP Highlight Map
@@ -60,11 +80,14 @@ def generate_all_figures():
     drawer_shap = rdMolDraw2D.MolDraw2DCairo(600, 400)
     opts_shap = drawer_shap.drawOptions()
     opts_shap.addStereoAnnotation = True
+    opts_shap.clearBackground = True
     opts_shap.highlightRadius = 0.38
     drawer_shap.DrawMolecule(mol, highlightAtoms=highlight_atoms, highlightAtomColors=highlight_colors)
     drawer_shap.FinishDrawing()
-    with open(os.path.join(CURRENT_DIR, "fig3_shap_highlight_map.png"), "wb") as f:
+    fig3_path = os.path.join(CURRENT_DIR, "fig3_shap_highlight_map.png")
+    with open(fig3_path, "wb") as f:
         f.write(drawer_shap.GetDrawingText())
+    ensure_rgb_white_bg(fig3_path)
     print("Saved fig3_shap_highlight_map.png")
 
     # 4. FIG 4: Holdout ROC Curves
@@ -73,33 +96,37 @@ def generate_all_figures():
         meta = json.load(f)
     metrics = meta.get("metrics", {})
     
-    plt.figure(figsize=(6, 5), dpi=200)
-    plt.plot([0, 1], [0, 1], 'k--', lw=1.5, label='Chance Line (AUC = 0.500)')
+    fig = plt.figure(figsize=(6, 5), dpi=200, facecolor='white')
+    ax = fig.add_subplot(111)
+    ax.set_facecolor('white')
+    ax.plot([0, 1], [0, 1], 'k--', lw=1.5, label='Chance Line (AUC = 0.500)')
     
     rf_data = metrics.get("Random Forest", {})
     rf_rc = rf_data.get("roc_curve", {})
     if rf_rc:
         rf_auc = rf_data.get("roc_auc", 0.978)
-        plt.plot(rf_rc["fpr"], rf_rc["tpr"], color='#059669', lw=2.5,
+        ax.plot(rf_rc["fpr"], rf_rc["tpr"], color='#059669', lw=2.5,
                  label=f"Random Forest (AUC = {rf_auc:.3f})")
                  
     gb_data = metrics.get("Gradient Boosting", {})
     gb_rc = gb_data.get("roc_curve", {})
     if gb_rc:
         gb_auc = gb_data.get("roc_auc", 0.968)
-        plt.plot(gb_rc["fpr"], gb_rc["tpr"], color='#2563eb', lw=2.5,
+        ax.plot(gb_rc["fpr"], gb_rc["tpr"], color='#2563eb', lw=2.5,
                  label=f"Gradient Boosting (AUC = {gb_auc:.3f})")
                  
-    plt.xlim([-0.02, 1.02])
-    plt.ylim([-0.02, 1.05])
-    plt.xlabel("False Positive Rate (1 - Specificity)", fontsize=10, fontweight='bold')
-    plt.ylabel("True Positive Rate (Sensitivity)", fontsize=10, fontweight='bold')
-    plt.title("Fig 4: Receiver Operating Characteristic (ROC) on Holdout Test Set", fontsize=10.5, fontweight='bold')
-    plt.legend(loc="lower right", frameon=True, fontsize=9)
-    plt.grid(True, linestyle=":", alpha=0.6)
+    ax.set_xlim([-0.02, 1.02])
+    ax.set_ylim([-0.02, 1.05])
+    ax.set_xlabel("False Positive Rate (1 - Specificity)", fontsize=10, fontweight='bold')
+    ax.set_ylabel("True Positive Rate (Sensitivity)", fontsize=10, fontweight='bold')
+    ax.set_title("Fig 4: Receiver Operating Characteristic (ROC) on Holdout Test Set", fontsize=10.5, fontweight='bold')
+    ax.legend(loc="lower right", frameon=True, fontsize=9)
+    ax.grid(True, linestyle=":", alpha=0.6)
     plt.tight_layout()
-    plt.savefig(os.path.join(CURRENT_DIR, "fig4_roc_curves.png"))
+    fig4_path = os.path.join(CURRENT_DIR, "fig4_roc_curves.png")
+    plt.savefig(fig4_path, facecolor='white', edgecolor='none', transparent=False)
     plt.close()
+    ensure_rgb_white_bg(fig4_path)
     print("Saved fig4_roc_curves.png")
 
     # 5. FIG 5: Radar Bioavailability
@@ -111,7 +138,8 @@ def generate_all_figures():
     query_vals = [446.9/500, 4.28/5.0, 68.7/140, 1/5.0, 7/10.0, 7/10.0]
     query_vals += query_vals[:1]
 
-    fig, ax = plt.subplots(figsize=(5.5, 5.5), subplot_kw=dict(polar=True), dpi=200)
+    fig, ax = plt.subplots(figsize=(5.5, 5.5), subplot_kw=dict(polar=True), dpi=200, facecolor='white')
+    ax.set_facecolor('white')
     ax.plot(angles, limit_vals, color='#dc2626', lw=1.5, linestyle='--', label='Lipinski/Veber Limit')
     ax.fill(angles, limit_vals, color='#fee2e2', alpha=0.25)
     ax.plot(angles, query_vals, color='#059669', lw=2.2, label='Gefitinib (Query Molecule)')
@@ -122,28 +150,34 @@ def generate_all_figures():
     plt.title("Fig 5: Oral Bioavailability Radar Profile (Lipinski Boundary vs. Query)", fontsize=10, fontweight='bold', pad=15)
     plt.legend(loc='upper right', bbox_to_anchor=(1.25, 1.1), fontsize=8.5)
     plt.tight_layout()
-    plt.savefig(os.path.join(CURRENT_DIR, "fig5_radar_druglikeness.png"))
+    fig5_path = os.path.join(CURRENT_DIR, "fig5_radar_druglikeness.png")
+    plt.savefig(fig5_path, facecolor='white', edgecolor='none', transparent=False)
     plt.close()
+    ensure_rgb_white_bg(fig5_path)
     print("Saved fig5_radar_druglikeness.png")
 
     # 6. FIG 6: Tanimoto Similarity Bar Chart
     drugs = ['Gefitinib', 'Erlotinib', 'Afatinib', 'Osimertinib', 'Lapatinib', 'Aspirin (Ctrl)']
     sims = [100.0, 52.4, 48.9, 39.2, 38.6, 13.3]
-    plt.figure(figsize=(6.5, 3.8), dpi=200)
+    fig = plt.figure(figsize=(6.5, 3.8), dpi=200, facecolor='white')
+    ax = fig.add_subplot(111)
+    ax.set_facecolor('white')
     colors_bar = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#f87171']
-    bars = plt.barh(drugs[::-1], sims[::-1], color=colors_bar[::-1], edgecolor='#1e293b', lw=1)
+    bars = ax.barh(drugs[::-1], sims[::-1], color=colors_bar[::-1], edgecolor='#1e293b', lw=1)
     for bar in bars:
         w = bar.get_width()
-        plt.text(w + 1.2, bar.get_y() + bar.get_height()/2, f'{w:.1f}%', va='center', ha='left', fontsize=8.5, fontweight='bold')
-    plt.xlim([0, 115])
-    plt.xlabel("Tanimoto Similarity Index (%) [ECFP4 2048-bit]", fontsize=9.5, fontweight='bold')
-    plt.title("Fig 6: Structural Similarity against Clinical EGFR Therapeutics", fontsize=10.5, fontweight='bold')
-    plt.grid(axis='x', linestyle=':', alpha=0.6)
+        ax.text(w + 1.2, bar.get_y() + bar.get_height()/2, f'{w:.1f}%', va='center', ha='left', fontsize=8.5, fontweight='bold')
+    ax.set_xlim([0, 115])
+    ax.set_xlabel("Tanimoto Similarity Index (%) [ECFP4 2048-bit]", fontsize=9.5, fontweight='bold')
+    ax.set_title("Fig 6: Structural Similarity against Clinical EGFR Therapeutics", fontsize=10.5, fontweight='bold')
+    ax.grid(axis='x', linestyle=':', alpha=0.6)
     plt.tight_layout()
-    plt.savefig(os.path.join(CURRENT_DIR, "fig6_similarity_benchmark.png"))
+    fig6_path = os.path.join(CURRENT_DIR, "fig6_similarity_benchmark.png")
+    plt.savefig(fig6_path, facecolor='white', edgecolor='none', transparent=False)
     plt.close()
+    ensure_rgb_white_bg(fig6_path)
     print("Saved fig6_similarity_benchmark.png")
-    print("All 6 publication figures generated successfully!")
+    print("All 6 publication figures generated successfully with RGB pure white backgrounds!")
 
 if __name__ == "__main__":
     generate_all_figures()
